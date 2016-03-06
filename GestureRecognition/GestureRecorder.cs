@@ -20,6 +20,8 @@ namespace GestureRecognition
         protected bool NonRealTimeRecognizeEnable { get; set; }
         protected bool SemiRealTimeRecognizeEnable { get; set; }
 
+
+
         protected long LastTimestamp = 0;// 上一个有效的时间戳
         protected long CurrentTimestamp = 0;// 当前有效的时间戳
         // 提取手势点时最小的分辨距离
@@ -29,6 +31,7 @@ namespace GestureRecognition
         public EventState EventState { set; get; }
 
         public bool GestureRecognizeEnable { set; get; }
+
         public abstract void Record();
         public abstract void RealTimeReport();
         public abstract void NonRealTimeReport();
@@ -124,16 +127,16 @@ namespace GestureRecognition
         public override void Record()
         {
             // 触摸点数量大于最大判断数量，直接返回
-            if (!GestureRecognizeEnable || Input.touchCount > GestureManager.MaxTouchCount) return;
+            if (!GestureRecognizeEnable || GestureManager.TouchesCount > GestureManager.MaxTouchCount) return;
             // 开始触摸，处理完成后将结束事件
-            if (LastTouchesCount == 0 && Input.touchCount > 0)
+            if (LastTouchesCount == 0 && GestureManager.TouchesCount > 0)
             {
                 EventState = EventState.Free;
                 OnTouchBegin();
                 return;
             }
             // 事件结束
-            if (Input.touchCount == 0)
+            if (GestureManager.TouchesCount == 0)
             {
                 if (LastTouchesCount != 0)
                 {
@@ -142,9 +145,9 @@ namespace GestureRecognition
                 return;
             }
             // 若触摸点数目改变，则立即提交本次事件，并初始化手势信息
-            if (LastTouchesCount != Input.touchCount)
+            if (LastTouchesCount != GestureManager.TouchesCount)
             {
-                OnTouchCountChanged(Input.touchCount);
+                OnTouchCountChanged(GestureManager.TouchesCount);
                 return;
             }
             CurrentTimestamp = DateTime.Now.Ticks;
@@ -155,14 +158,14 @@ namespace GestureRecognition
         protected override void OnTouchBegin()
         {
             CurrentTimestamp = DateTime.Now.Ticks;
-            LastTouchesCount = Input.touchCount;
+            LastTouchesCount = GestureManager.TouchesCount;
             LastTimestamp = DateTime.Now.Ticks;
-            for (var i = 0; i < Input.touchCount; i++)
+            for (var i = 0; i < GestureManager.TouchesCount; i++)
             {
                 VectorRecordEnable[i] = false;
-                LastPoints[i] = new GesturePoint(Input.touches[i].position, LastTimestamp);
+                LastPoints[i] = new GesturePoint(GestureManager.Touches[i].position, LastTimestamp);
                 LastRealTimePoints[i] = LastPoints[i];
-                GesturePaths[i].Initialize(CurrentTimestamp, Input.touches[i].position);
+                GesturePaths[i].Initialize(CurrentTimestamp, GestureManager.Touches[i].position);
 
             }
             // 触摸开始，通知手势点
@@ -176,7 +179,7 @@ namespace GestureRecognition
             RealTimeReport();
             for (var i = 0; i < LastTouchesCount; i++)
             {
-                LastRealTimePoints[i] = new GesturePoint(Input.touches[i].position, CurrentTimestamp);
+                LastRealTimePoints[i] = new GesturePoint(GestureManager.Touches[i].position, CurrentTimestamp);
             }
         }
 
@@ -209,13 +212,13 @@ namespace GestureRecognition
             switch (LastTouchesCount)
             {
                 case 1:
-                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(Input.touches[0].position, CurrentTimestamp));
+                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(GestureManager.Touches[0].position, CurrentTimestamp));
                     break;
                 case 2:
-                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(Input.touches[0].position, CurrentTimestamp), LastRealTimePoints[1], new GesturePoint(Input.touches[1].position, CurrentTimestamp));
+                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(GestureManager.Touches[0].position, CurrentTimestamp), LastRealTimePoints[1], new GesturePoint(Input.touches[1].position, CurrentTimestamp));
                     break;
                 case 3:
-                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(Input.touches[0].position, CurrentTimestamp), LastRealTimePoints[1], new GesturePoint(Input.touches[1].position, CurrentTimestamp), LastRealTimePoints[2], new GesturePoint(Input.touches[2].position, CurrentTimestamp));
+                    RealTimeRecognizer.Recognize(LastRealTimePoints[0], new GesturePoint(GestureManager.Touches[0].position, CurrentTimestamp), LastRealTimePoints[1], new GesturePoint(Input.touches[1].position, CurrentTimestamp), LastRealTimePoints[2], new GesturePoint(Input.touches[2].position, CurrentTimestamp));
                     break;
                 default:
                     break;
@@ -229,7 +232,7 @@ namespace GestureRecognition
             for (var i = 0; i < LastTouchesCount; i++)
             {
                 // 当前触摸点与上一个有效向量点组成的向量
-                var vector2 = Input.touches[i].position - LastPoints[i].Vector2;
+                var vector2 = GestureManager.Touches[i].position - LastPoints[i].Vector2;
                 // 当前向量的模平方
                 var squareMagnitude = vector2.sqrMagnitude;
                 if (squareMagnitude < GestureManager.MinRecognizeOffset) continue;
@@ -242,7 +245,7 @@ namespace GestureRecognition
                     VectorRecordEnable[i] = true;
                     LastVectors[i] = vector2;
                     SemiRealTimeRecognizer.OnTouchStartMove(LastVectors, LastTouchesCount);
-                    LastPoints[i] = new GesturePoint(Input.touches[i].position, CurrentTimestamp);
+                    LastPoints[i] = new GesturePoint(GestureManager.Touches[i].position, CurrentTimestamp);
                     continue;
                 }
                 // 不接受只含有2个点的微小向量
@@ -250,7 +253,7 @@ namespace GestureRecognition
                 {
                     VectorAvaliable[i] = true;
                     LastVectors[i] = vector2;
-                    LastPoints[i] = new GesturePoint(Input.touches[i].position, CurrentTimestamp);
+                    LastPoints[i] = new GesturePoint(GestureManager.Touches[i].position, CurrentTimestamp);
                     continue;
                 }
                 // 判断手势向量夹角，小于45度则视为同一段向量
@@ -258,7 +261,7 @@ namespace GestureRecognition
                 if (coss > GestureConstant.coss45)
                 {
                     LastVectors[i] = LastVectors[i] + vector2;
-                    LastPoints[i] = new GesturePoint(Input.touches[i].position, CurrentTimestamp);
+                    LastPoints[i] = new GesturePoint(GestureManager.Touches[i].position, CurrentTimestamp);
                     continue;
                 }
                 // 计算拐点类型
@@ -268,7 +271,7 @@ namespace GestureRecognition
                 GesturePaths[i].AllNormalizedVectors.Add(LastVectors[i]);
                 GesturePaths[i].CurrentVector = vector2;
                 GesturePaths[i].VectorSquareMagnitude.Add(squareMagnitude);
-                LastPoints[i] = new GesturePoint(Input.touches[i].position, CurrentTimestamp);
+                LastPoints[i] = new GesturePoint(GestureManager.Touches[i].position, CurrentTimestamp);
                 LastVectors[i] = vector2;
                 VectorAvaliable[i] = false;
             }

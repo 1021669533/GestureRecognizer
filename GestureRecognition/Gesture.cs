@@ -107,6 +107,9 @@ namespace GestureRecognition
         public static readonly float MinRecognizeOffset = Screen.height * Screen.height / 400f;
         public static readonly float MinRealTimeOffset = Screen.height * Screen.height / 6400f;
 
+        public static int TouchesCount = 0;
+        public static Touch[] Touches = new Touch[MaxTouchCount];
+
         public bool GestureRecognizeEnable
         {
             set
@@ -165,9 +168,42 @@ namespace GestureRecognition
             _nonRealTimeRecognizer.AddParser(parser);
         }
 
+        // 点击区域集合
+        private bool _touchAreaEnable = false;
+        private readonly List<Rect> _touchArea = new List<Rect>();
+        // 添加点击区域
+        public void AddTouchArea(Rect area)
+        {
+            _touchArea.Add(area);
+            _touchAreaEnable = true;
+        }
+
+        public void ClearTouchArea()
+        {
+            _touchArea.Clear();
+            _touchAreaEnable = false;
+        }
+
         public void Update()
         {
             if (!GestureRecognizeEnable) return;
+            if (_touchAreaEnable)
+            {
+                int count = Input.touchCount > MaxTouchCount ? MaxTouchCount : Input.touchCount;
+                TouchesCount = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    foreach (var rect in _touchArea)
+                    {
+                        if (rect.Contains(Input.touches[i].position))
+                        {
+                            Touches[TouchesCount] = Input.touches[i];
+                            TouchesCount++;
+                            break;
+                        }
+                    }
+                }
+            }
             Recorder.Record();
         }
 
