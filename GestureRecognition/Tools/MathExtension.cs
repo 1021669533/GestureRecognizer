@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace GestureRecognition.Tools
 {
@@ -8,13 +9,27 @@ namespace GestureRecognition.Tools
         /// <summary>
         /// 计算两二维向量夹角的余弦值平方，同时保持符号不变性
         /// </summary>
-        /// <param name="from">起始向量</param>
-        /// <param name="to">终止向量</param>
+        /// <param name="from">起始2维向量</param>
+        /// <param name="to">终止2维向量</param>
         /// <returns></returns>
         public static float CosSquare(Vector2 from, Vector2 to)
         {
             var xy = from.x * to.x + from.y * to.y;
-            return xy * Mathf.Abs(xy) / (from.sqrMagnitude * to.sqrMagnitude);
+            var f = from.sqrMagnitude;
+            if (Math.Abs(f) < 0.0001f) return xy > 0 ? float.MaxValue : float.MinValue;
+            var t = to.sqrMagnitude;
+            if (Math.Abs(t) < 0.0001f) return xy > 0 ? float.MaxValue : float.MinValue;
+            return xy * Mathf.Abs(xy) / (f * t);
+        }
+
+        public static float CosSquare(Vector3 from, Vector3 to)
+        {
+            var xyz = from.x * to.x + from.y * to.y + from.z * to.z;
+            var f = from.sqrMagnitude;
+            if (Math.Abs(f) < 0.0001f) return xyz > 0 ? float.MaxValue : float.MinValue;
+            var t = to.sqrMagnitude;
+            if (Math.Abs(t) < 0.0001f) return xyz > 0 ? float.MaxValue : float.MinValue;
+            return xyz * Mathf.Abs(xyz) / (f * t);
         }
         /// <summary>
         /// 计算一个二维向量的斜率
@@ -78,7 +93,7 @@ namespace GestureRecognition.Tools
         }
         public static Direction JudgeDirection(GesturePoint from, GesturePoint to)
         {
-            var slope = MathExtension.Slope(to - from);
+            var slope = Slope(to - from);
             if (slope > GestureConstant.tan67p5 || slope < -GestureConstant.tan67p5)
             {
                 return to.y > from.y ? Direction.Up : Direction.Down;

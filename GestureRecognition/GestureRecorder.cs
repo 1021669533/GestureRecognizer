@@ -20,8 +20,6 @@ namespace GestureRecognition
         protected bool NonRealTimeRecognizeEnable { get; set; }
         protected bool SemiRealTimeRecognizeEnable { get; set; }
 
-
-
         protected long LastTimestamp = 0;// 上一个有效的时间戳
         protected long CurrentTimestamp = 0;// 当前有效的时间戳
         // 提取手势点时最小的分辨距离
@@ -313,6 +311,7 @@ namespace GestureRecognition
         protected GesturePath GesturePath = new GesturePath();
         public override void Record()
         {
+            if (!GestureRecognizeEnable) return;
             // 事件开始
             if (Input.GetMouseButtonDown(0))
             {

@@ -204,6 +204,15 @@ namespace GestureRecognition
                     }
                 }
             }
+            else
+            {
+                int count = Input.touchCount > MaxTouchCount ? MaxTouchCount : Input.touchCount;
+                TouchesCount = Input.touchCount;
+                for (int i = 0; i < count; i++)
+                {
+                    Touches[i] = Input.touches[i];
+                }
+            }
             Recorder.Record();
         }
 
